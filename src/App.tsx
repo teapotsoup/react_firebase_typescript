@@ -22,6 +22,11 @@ function App() {
   const usersCollectionRef = collection(db, "users");
   const deleteUser =async(id: string)=>{
     const userDoc = doc(db,"users",id)
+    users.map((user)=>{
+      if(user.id===id){
+        setUsers(users.filter(e=>e!==user))
+      }
+    })
     await deleteDoc(userDoc)
   }
 
@@ -62,6 +67,7 @@ function App() {
       <input type="number" placeholder="Age..." onChange={(e)=>{setNewAge(parseInt(e.target.value))}} />
       <button onClick={createUser}>Create User</button>
       {users.map((user) => {
+        console.log(user)
         return (
           <div key={user.id}>
             {" "}
