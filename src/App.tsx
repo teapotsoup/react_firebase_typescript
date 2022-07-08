@@ -18,7 +18,9 @@ type User = {
 };
 
 function App() {
+  const [isShown, setIsShown] = useState(true);
   const [newName, setNewName] = useState<string>("");
+  const [changedName, setChangedName] = useState<string>("");
   const [newAge, setNewAge] = useState<number>(0);
   const [users, setUsers] = useState<User[]>([]); //users는 [{id:"",name:"",age:},{},...] 형태의 자료형.
 
@@ -40,7 +42,10 @@ function App() {
   };
 
   //update. 버튼 클릭시 인풋창 두개가 생기고 각각 나이, 이름을 바꿀수 있게 설정. 둘중 하나가 비면 빈거는 원래값 그대로 들어가게 설정.
-  const updateUser = async (id: string, age: number, index: number) => {
+
+  //**********************UPDATE sector********************************
+
+  const increaseAge = async (id: string, age: number, index: number) => {
     const userDoc = doc(db, "users", id);
     const newFields = { age: age + 1 };
     await onSnapshot(doc(db, "users", id), (doc) => {
@@ -49,6 +54,28 @@ function App() {
         id,
         name: getName,
         age: age + 1,
+      };
+      setUsers([
+        ...users.slice(0, index),
+        newUser,
+        ...users.slice(index + 1, users.length),
+      ]);
+    });
+
+    await updateDoc(userDoc, newFields); //doc 수정시 updateDoc(기존doc, 수정사항 적힌 객체 자료형)
+  };
+
+  const decreaseAge = async (id: string, age: number, index: number) => {
+    const userDoc = doc(db, "users", id);
+    let num = age > 0 ? age - 1 : 0;
+    const newFields = { age: num };
+
+    await onSnapshot(doc(db, "users", id), (doc) => {
+      let getName = doc.data()!.name;
+      const newUser = {
+        id,
+        name: getName,
+        age: num,
       };
 
       // setUsers([...users, newUser]);
@@ -62,13 +89,12 @@ function App() {
     await updateDoc(userDoc, newFields); //doc 수정시 updateDoc(기존doc, 수정사항 적힌 객체 자료형)
   };
 
-  // const unsub = (id: string) => {
-  //   onSnapshot(doc(db, "users", id), (doc) => {
-  //     console.log("Current data: ", doc.data());
-  //   });
-  // };
+  const updateName = async (id: string, age: number, index: number) => {
+    //changedName
+  };
 
-  //console.log(newPerson);
+  //**********************UPDATE sector********************************
+
   //delete
   const deleteUser = async (id: string) => {
     const userDoc = doc(db, "users", id);
@@ -96,7 +122,13 @@ function App() {
     };
     getUsers();
   }, []);
-
+  const handleSubmit = (event:any) => {
+    event.preventDefault();
+    alert(`변경된 패스워드: ${changedName}`);
+  };
+  const handleClick = () => {
+    setIsShown(current => !current);
+  };
   return (
     <div className="App">
       <input
@@ -121,14 +153,14 @@ function App() {
             <h1>Age: {user.age}</h1>
             <button
               onClick={() => {
-                updateUser(user.id, user.age, index);
+                increaseAge(user.id, user.age, index);
               }}
             >
               Increase Age
             </button>
             <button
               onClick={() => {
-                updateUser(user.id, user.age, index);
+                decreaseAge(user.id, user.age, index);
               }}
             >
               Decrease Age
@@ -140,6 +172,20 @@ function App() {
             >
               Delete User
             </button>
+            <div>
+              <form onSubmit={handleSubmit} style={{ display: isShown ? "block" : "none" }}>
+                  <input
+                    type="text"
+                    onChange={(e) => {
+                      setChangedName(e.target.value);
+                    }}
+                    placeholder={user.name}
+                  />
+                <input style={{display:"hidden"}} type="submit" value="이름변경" />
+              </form>
+
+              <button onClick={handleClick}>{`Edit Name & Age`}</button>
+            </div>
           </div>
         );
       })}
