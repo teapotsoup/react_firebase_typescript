@@ -1,80 +1,138 @@
-import { collection, getDocs, addDoc, updateDoc,doc, deleteDoc } from "firebase/firestore";
+//파이어베이스에서는 collection : table, doc : row, field : row안의 column
+import {
+  collection,
+  getDocs,
+  addDoc,
+  updateDoc,
+  doc,
+  deleteDoc,
+  onSnapshot,
+} from "firebase/firestore";
 import { useState, useEffect } from "react";
 import { db } from "./firebase-config";
 
-// interface User{
-//   id:string,
-//   name:string,
-//   age:number,
-// }
 type User = {
-  id:string,
-  name:string,
-  age:number,
-}
+  id: string;
+  name: string;
+  age: number;
+};
 
 function App() {
-  const [newName, setNewName] =useState<string>("")
-  const [newAge, setNewAge] =useState<number>(0)
+  const [newName, setNewName] = useState<string>("");
+  const [newAge, setNewAge] = useState<number>(0);
+  const [users, setUsers] = useState<User[]>([]); //users는 [{id:"",name:"",age:},{},...] 형태의 자료형.
 
-  const [users, setUsers] = useState<User[]>([]);
+  const usersCollectionRef = collection(db, "users"); //users이름의 콜렉션(자료들을 모아놓은 자료구조)
 
-  const usersCollectionRef = collection(db, "users");
-  const deleteUser =async(id: string)=>{
-    const userDoc = doc(db,"users",id)
-    users.map((user)=>{
-      if(user.id===id){
-        setUsers(users.filter(e=>e!==user))
-      }
-    })
-    await deleteDoc(userDoc)
-  }
-
-  const createUser =async()=>{
-    const result = await addDoc(usersCollectionRef, {name:newName, age:newAge})
-    console.log(result);
-    let newUser = {
+  //create
+  const createUser = async () => {
+    const result = await addDoc(usersCollectionRef, {
+      name: newName,
+      age: newAge,
+    }); //addDoc(저장할 콜렉션, 들어갈 자료형 기입)
+    //result==={converter:null, _key:,firestore:,id,...}등으로 이뤄진 객체
+    const newUser = {
       id: result.id,
       name: newName,
-      age: newAge
-    }
-    setUsers((users) => [...users, newUser])
-  }
-  const updateUser = async (id:string,age:number)=>{
-    const userDoc=doc(db,"users",id)
-    const newFields = {age:age+1}
-    await updateDoc(userDoc,newFields)
-  }
+      age: newAge,
+    };
+    await setUsers((users) => [...users, newUser]); //비동기 함수를 사용하는 이유?
+  };
 
+  //update. 버튼 클릭시 인풋창 두개가 생기고 각각 나이, 이름을 바꿀수 있게 설정. 둘중 하나가 비면 빈거는 원래값 그대로 들어가게 설정.
+  const updateUser = async (id: string, age: number, index: number) => {
+    const userDoc = doc(db, "users", id);
+    const newFields = { age: age };
+    await onSnapshot(doc(db, "users", id), (doc) => {
+      let getName = doc.data()!.name;
+      const newUser = {
+        id,
+        name: getName,
+        age: (age += 1),
+      };
+
+      // setUsers([...users, newUser]);
+      setUsers([
+        ...users.slice(0, index),
+        newUser,
+        ...users.slice(index + 1, users.length),
+      ]);
+    });
+
+    await updateDoc(userDoc, newFields); //doc 수정시 updateDoc(기존doc, 수정사항 적힌 객체 자료형)
+  };
+
+  //delete
+  const deleteUser = async (id: string) => {
+    const userDoc = doc(db, "users", id);
+    users.map((user) => {
+      if (user.id === id) {
+        setUsers(users.filter((e) => e !== user));
+      }
+    });
+    await deleteDoc(userDoc);
+  };
+
+  //얘가 read다
   useEffect(() => {
     const getUsers = async () => {
       const data = await getDocs(usersCollectionRef);
-      data.docs.map((item) => {
+      //data.docs에는 doc들이 들어있다.
+      data.docs.map((doc) => {
         let result = {
-          id: item.id,
-          name: item.data().name,
-          age: item.data().age
-        }
-        setUsers((users) => [...users, result])
-      })
-    }
+          id: doc.id,
+          name: doc.data().name,
+          age: doc.data().age,
+        };
+        setUsers((users) => [...users, result]);
+      });
+    };
     getUsers();
-  }, [])
-  
+  }, []);
+
   return (
     <div className="App">
-      <input placeholder="Name..." onChange={(e)=>{setNewName(e.target.value)}} />
-      <input type="number" placeholder="Age..." onChange={(e)=>{setNewAge(parseInt(e.target.value))}} />
+      <input
+        placeholder="Name..."
+        onChange={(e) => {
+          setNewName(e.target.value);
+        }}
+      />
+      <input
+        type="number"
+        placeholder="Age..."
+        onChange={(e) => {
+          setNewAge(parseInt(e.target.value));
+        }}
+      />
       <button onClick={createUser}>Create User</button>
-      {users.map((user) => {
-        console.log(user)
+      {users.map((user, index) => {
         return (
-          <div key={user.id}>
+          <div key={index}>
             {" "}
             <h1>Name: {user.name}</h1>
             <h1>Age: {user.age}</h1>
-            <button onClick={()=>{updateUser(user.id,user.age)}}>Increase Age</button>
-            <button onClick={()=>{deleteUser(user.id)}}>Delete User</button>
+            <button
+              onClick={() => {
+                updateUser(user.id, user.age, index);
+              }}
+            >
+              Increase Age
+            </button>
+            <button
+              onClick={() => {
+                updateUser(user.id, user.age, index);
+              }}
+            >
+              Decrease Age
+            </button>
+            <button
+              onClick={() => {
+                deleteUser(user.id);
+              }}
+            >
+              Delete User
+            </button>
           </div>
         );
       })}
