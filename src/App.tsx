@@ -42,13 +42,13 @@ function App() {
   //update. 버튼 클릭시 인풋창 두개가 생기고 각각 나이, 이름을 바꿀수 있게 설정. 둘중 하나가 비면 빈거는 원래값 그대로 들어가게 설정.
   const updateUser = async (id: string, age: number, index: number) => {
     const userDoc = doc(db, "users", id);
-    const newFields = { age: age };
+    const newFields = { age: age + 1 };
     await onSnapshot(doc(db, "users", id), (doc) => {
       let getName = doc.data()!.name;
       const newUser = {
         id,
         name: getName,
-        age: (age += 1),
+        age: age + 1,
       };
 
       // setUsers([...users, newUser]);
@@ -62,6 +62,13 @@ function App() {
     await updateDoc(userDoc, newFields); //doc 수정시 updateDoc(기존doc, 수정사항 적힌 객체 자료형)
   };
 
+  // const unsub = (id: string) => {
+  //   onSnapshot(doc(db, "users", id), (doc) => {
+  //     console.log("Current data: ", doc.data());
+  //   });
+  // };
+
+  //console.log(newPerson);
   //delete
   const deleteUser = async (id: string) => {
     const userDoc = doc(db, "users", id);
