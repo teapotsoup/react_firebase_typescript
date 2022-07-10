@@ -4,5 +4,5 @@
 <ul>
   <li>react.js</li>
   <li>firebase</li>
-  <li>ts/li>
+  <li>ts</li>
 </ul>
